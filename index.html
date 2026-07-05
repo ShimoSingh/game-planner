@@ -232,7 +232,7 @@
             const gameContent = document.createElement('div');
             gameContent.className = 'row p-1 align-items-center bg-primary-subtle border-bottom border-primary-subtle';
             const gameNumberCol = document.createElement('div');
-            gameNumberCol.className = 'col-1';
+            gameNumberCol.className = 'col-2 col-lg-1';
             gameNumberCol.textContent = `Game ${gameIndex + 1}`;
             gameContent.appendChild(gameNumberCol);
             addTeamCol(game.slice(0, 2), gameContent, 'start');
@@ -255,10 +255,28 @@
 
         function addTeamCol(team, gameContent, position) {
             const gameTeamsCol = document.createElement('div');
-            gameTeamsCol.className = `col-4 text-${position}`;
+            gameTeamsCol.className = `col-3 col-lg-4 text-${position}`;
             gameTeamsCol.textContent = team.join(' & ');
             gameContent.appendChild(gameTeamsCol);
         }
+
+        document.getElementById('print-button').addEventListener('click', function() {
+            window.print();
+        });
     </script>
+    <style>
+        @media print {
+            body {
+                visibility: hidden;
+            }
+            #games-list {
+                visibility: visible;
+                position: absolute;
+                width: 100%;
+                left: 0;
+                top: 0;
+            }
+        }
+    </style>
 </body>
 </html>
