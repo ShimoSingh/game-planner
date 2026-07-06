@@ -195,7 +195,7 @@ function renderGame(game, gameIndex, listItem) {
 function addScoreInput(scoreCol) {
     const scoreInput = document.createElement('input');
     scoreInput.type = 'text';
-    scoreInput.className = 'col-5 text-center';
+    scoreInput.className = 'col-5 text-center js-score-input';
     scoreInput.placeholder = 'Score';
     scoreCol.appendChild(scoreInput);
 }
@@ -208,11 +208,17 @@ function addTeamCol(team, gameContent, position) {
 }
 
 document.getElementById('download-button').addEventListener('click', function() {
-    html2canvas(document.getElementById('games-list')).then(canvas => {
+    document.querySelectorAll('.js-score-input').forEach(input => {
+        input.placeholder = '';
+    });
+    html2canvas(document.getElementById('games-list'), {windowWidth: "1200"}).then(canvas => {
         const imgData = canvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.href = imgData;
         link.download = 'matches.png';
         link.click();
+    });
+    document.querySelectorAll('.js-score-input').forEach(input => {
+        input.placeholder = 'Score';
     });
 });
