@@ -21,6 +21,11 @@ document.getElementById('player-form').addEventListener('reset', function(event)
 
 function reRenderPlayerList() {
     localStorage.setItem('players', JSON.stringify(players));
+    if(players.length < 4) {
+        document.getElementById('player-list-info').classList.remove('d-none');
+    } else {
+        document.getElementById('player-list-info').classList.add('d-none');
+    }
     const playerList = document.getElementById('player-list');
     playerList.innerHTML = '';
     players.forEach((player, index) => {
