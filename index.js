@@ -179,7 +179,7 @@ function renderGame(game, gameIndex, listItem) {
     const gameContent = document.createElement('div');
     gameContent.className = 'row p-1 align-items-center bg-primary-subtle border-bottom border-primary-subtle';
     const gameNumberCol = document.createElement('div');
-    gameNumberCol.className = 'col-2 col-lg-1';
+    gameNumberCol.className = 'col-2 col-lg-1 text-center fw-bold';
     gameNumberCol.textContent = `Game ${gameIndex + 1}`;
     gameContent.appendChild(gameNumberCol);
     const playersCol = document.createElement('div');
