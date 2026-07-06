@@ -182,27 +182,31 @@ function renderGame(game, gameIndex, listItem) {
     gameNumberCol.className = 'col-2 col-lg-1';
     gameNumberCol.textContent = `Game ${gameIndex + 1}`;
     gameContent.appendChild(gameNumberCol);
-    addTeamCol(game.slice(0, 2), gameContent, 'start');
-    const scoreCol = document.createElement('div');
-    scoreCol.className = 'col-3 row justify-content-between';
-    addScoreInput(scoreCol);
-    addScoreInput(scoreCol);
-    gameContent.appendChild(scoreCol);
-    addTeamCol(game.slice(2, 4), gameContent, 'end');
+    const playersCol = document.createElement('div');
+    playersCol.className = 'row col-10 col-lg-11';
+    gameContent.appendChild(playersCol);
+    addTeamCol(game.slice(0, 2), playersCol, 'start');
+    addScoreInput(playersCol);
+    addScoreInput(playersCol, "order-1");
+    addTeamCol(game.slice(2, 4), playersCol, 'end');
     listItem.appendChild(gameContent);
 }
 
-function addScoreInput(scoreCol) {
+function addScoreInput(playersCol, orderClass) {
+    const scoreCol = document.createElement('div');
+    scoreCol.className = 'col-5 col-md-2 row order-md-0';
+    scoreCol.classList.add(orderClass);
     const scoreInput = document.createElement('input');
     scoreInput.type = 'text';
-    scoreInput.className = 'col-5 text-center js-score-input';
+    scoreInput.className = 'col-10 mb-2 mb-md-0 text-center js-score-input';
     scoreInput.placeholder = 'Score';
     scoreCol.appendChild(scoreInput);
+    playersCol.appendChild(scoreCol);
 }
 
 function addTeamCol(team, gameContent, position) {
     const gameTeamsCol = document.createElement('div');
-    gameTeamsCol.className = `col-3 col-lg-4 text-${position}`;
+    gameTeamsCol.className = `col-7 col-md-4 text-md-${position}`;
     gameTeamsCol.textContent = team.join(' & ');
     gameContent.appendChild(gameTeamsCol);
 }
