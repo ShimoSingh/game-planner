@@ -1,7 +1,31 @@
 let players = JSON.parse(localStorage.getItem('players')) || [];
 let matches = JSON.parse(localStorage.getItem('matches')) || [];
+let savedMatches = JSON.parse(localStorage.getItem('allMatches')) || {"Big Game": matches};
 reRenderPlayerList();
 reRenderMatches();
+reRenderSavedMatches();
+
+function reRenderSavedMatches() {
+    const savedMatchesList = document.getElementById('saved-matches-list');
+    savedMatchesList.innerHTML = '';
+    Object.keys(savedMatches).forEach((key, index) => {
+        const match = savedMatches[key];
+        const listItem = document.createElement('li');
+        listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+        listItem.textContent = key;
+        const loadButton = document.createElement('button');
+        loadButton.className = 'btn btn-primary btn-sm';
+        loadButton.textContent = 'Load';
+        loadButton.addEventListener('click', function() {
+            matches = match;
+            localStorage.setItem('matches', JSON.stringify(matches));
+            reRenderMatches();
+        });
+        listItem.appendChild(loadButton);
+        savedMatchesList.appendChild(listItem);
+    });
+}
+
 document.getElementById('player-form').addEventListener('submit', function(event) {
     event.preventDefault();
     const playerName = document.getElementById('player-name').value.trim();
