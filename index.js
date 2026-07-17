@@ -1,5 +1,5 @@
 let matches = JSON.parse(localStorage.getItem('matches')) || [];
-let savedMatches = JSON.parse(localStorage.getItem('allMatches')) || {"Big Game": matches};
+let savedMatches = JSON.parse(localStorage.getItem('allMatches')) || {};
 reRenderMatches();
 reRenderSavedMatches();
 
@@ -11,6 +11,8 @@ function reRenderSavedMatches() {
         const listItem = document.createElement('li');
         listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
         listItem.textContent = key;
+        const buttonDiv = document.createElement('div');
+        listItem.appendChild(buttonDiv);
         const loadButton = document.createElement('button');
         loadButton.className = 'btn btn-primary btn-sm';
         loadButton.textContent = 'Load';
@@ -19,10 +21,36 @@ function reRenderSavedMatches() {
             localStorage.setItem('matches', JSON.stringify(matches));
             reRenderMatches();
         });
-        listItem.appendChild(loadButton);
+        buttonDiv.appendChild(loadButton);
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'btn btn-danger btn-sm ms-2';
+        deleteButton.textContent = 'Delete';
+        deleteButton.addEventListener('click', function() {
+            delete savedMatches[key];
+            localStorage.setItem('allMatches', JSON.stringify(savedMatches));
+            reRenderSavedMatches();
+        });
+        buttonDiv.appendChild(deleteButton);
         savedMatchesList.appendChild(listItem);
     });
 }
+
+document.getElementById('save-button').addEventListener('click', function() {
+    const matchName = prompt('Enter a name for the match:');
+    if(matchName) {
+        savedMatches[matchName] = matches;
+        localStorage.setItem('allMatches', JSON.stringify(savedMatches));
+        reRenderSavedMatches();
+    }
+});
+
+document.getElementById('clear-button').addEventListener('click', function() {
+    if(confirm('Are you sure you want to clear the current matches?')) {
+        matches = [];
+        localStorage.setItem('matches', JSON.stringify(matches));
+        reRenderMatches();
+    }
+});
 
 document.getElementById('generate-matches').addEventListener('click', function() {
     const numRounds = parseInt(document.getElementById('num-rounds').value);
