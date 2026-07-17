@@ -1,31 +1,40 @@
 function initializePVPIndices(players) {
-    const pvpIndices = {};
-    players.forEach(player => {
-        pvpIndices[player] = {};
+    return players.reduce((acc, player) => {
+        acc[player] = {};
         players.forEach(otherPlayer => {
             if(player !== otherPlayer) {
-                pvpIndices[player][otherPlayer] = 0;
+                acc[player][otherPlayer] = 0;
             }
         });
-    });
-    return pvpIndices;
+        return acc;
+    }, {});
 }
 
-function computeTeamPairs(pvpIndices, availablePlayers) {
+function computeTeamPairs(round, players) {
     const teamPairs = [];
-    while(availablePlayers.length > 0) {
-        let player = availablePlayers.shift();
-        let teamMate = availablePlayers[0];
-        let currIdxMap = pvpIndices[player];
-        availablePlayers.forEach(p => {
-            if(currIdxMap[p] < currIdxMap[teamMate]) {
-                teamMate = p;
-            }
-        });
-        teamPairs.push([player, teamMate]);
-        availablePlayers = availablePlayers.filter(p => p !== teamMate);
+    const rotatedPlayers = rotatePlayers(players, round);
+    for(let i = 0; i < rotatedPlayers.length/2; i ++) {
+        teamPairs.push([rotatedPlayers[i], rotatedPlayers[rotatedPlayers.length - 1 - i]]);
     }
-    return teamPairs;
+    let [teams, restPlayers] = teamPairs.reduce((acc, team) => {
+        if(team[0] === null || team[1] === null) {
+            acc[1].push(team[0] || team[1]);
+        } else {
+            acc[0].push(team);
+        }
+        return acc;
+    }, [[], []]);
+    return [teams, restPlayers];
+}
+
+function rotatePlayers(players, round) {
+    const playersCopy = [...players];
+    let anchor = playersCopy.shift();
+    for(let i = 0; i < round; i++) {
+        playersCopy.unshift(playersCopy.pop());
+    }
+    playersCopy.unshift(anchor);
+    return playersCopy;
 }
 
 function computeGames(teamPairs, pvpIndices) {
@@ -54,18 +63,14 @@ function computeGames(teamPairs, pvpIndices) {
 function updatePVPIndices(pvpIndices, games) {
     games.forEach(game => {
         const [player1, player2, player3, player4] = game;
-        pvpIndices[player1][player2]++;
         pvpIndices[player1][player3] += 0.5;
         pvpIndices[player1][player4] += 0.5;
-        pvpIndices[player2][player1]++;
         pvpIndices[player2][player3] += 0.5;
         pvpIndices[player2][player4] += 0.5;
         pvpIndices[player3][player1] += 0.5;
         pvpIndices[player3][player2] += 0.5;
-        pvpIndices[player3][player4]++;
         pvpIndices[player4][player1] += 0.5;
         pvpIndices[player4][player2] += 0.5;
-        pvpIndices[player4][player3]++;
     });
 }
 
@@ -74,16 +79,13 @@ function generateMatches(rounds) {
     const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
     const numberOfRestPlayers = shuffledPlayers.length % 4;
     const pvpIndices = initializePVPIndices(shuffledPlayers);
+    for(let j = 0; j < numberOfRestPlayers; j++) {
+        shuffledPlayers.push(null);
+    }
     for(let i = 0; i < rounds; i++) {
-        const match = {};
-        const restPlayers = [];
-        for(let j = 0; j < numberOfRestPlayers; j++) {
-            normalizedIndex = (j + i * numberOfRestPlayers) % shuffledPlayers.length;
-            restPlayers.push(shuffledPlayers[shuffledPlayers.length - 1 - normalizedIndex]);
-        }
-        let availablePlayers = shuffledPlayers.filter(player => !restPlayers.includes(player));
+        const match = {};        
+        let [teamPairs, restPlayers] = computeTeamPairs(i, shuffledPlayers);
         match.restPlayers = restPlayers;
-        let teamPairs = computeTeamPairs(pvpIndices, availablePlayers);
         match.games = computeGames(teamPairs, pvpIndices);
         matches.push(match);
         updatePVPIndices(pvpIndices, match.games);
