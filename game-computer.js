@@ -24,6 +24,9 @@ function computeTeamPairs(round, players) {
         }
         return acc;
     }, [[], []]);
+    if(teams.length % 2 != 0) {
+        return [null, null]
+    }
     return [teams, restPlayers];
 }
 
@@ -37,41 +40,70 @@ function rotatePlayers(players, round) {
     return playersCopy;
 }
 
-function computeGames(teamPairs, pvpIndices) {
+function computeGames(teamPairs) {
     const games = [];
     while(teamPairs.length > 0) {
-        const game = [];
-        const firstTeam = teamPairs.shift();
-        game.push(...firstTeam);
-        let secondTeam = teamPairs[0];
-        let minPVPCount = Infinity;
-        teamPairs.forEach((team, index) => {
-            let pvpCount = pvpIndices[firstTeam[0]][team[0]] + pvpIndices[firstTeam[1]][team[1]];
-            pvpCount += pvpIndices[firstTeam[0]][team[1]] + pvpIndices[firstTeam[1]][team[0]];
-            if(pvpCount < minPVPCount) {
-                minPVPCount = pvpCount;
-                secondTeam = team;
-            }
-        });
-        game.push(...secondTeam);
+        const game = [...teamPairs.shift(), ...teamPairs.shift()];
         games.push(game);
-        teamPairs = teamPairs.filter(team => team !== secondTeam);
     }
     return games;
 }
 
-function updatePVPIndices(pvpIndices, games) {
-    games.forEach(game => {
-        const [player1, player2, player3, player4] = game;
-        pvpIndices[player1][player3] += 0.5;
-        pvpIndices[player1][player4] += 0.5;
-        pvpIndices[player2][player3] += 0.5;
-        pvpIndices[player2][player4] += 0.5;
-        pvpIndices[player3][player1] += 0.5;
-        pvpIndices[player3][player2] += 0.5;
-        pvpIndices[player4][player1] += 0.5;
-        pvpIndices[player4][player2] += 0.5;
+function updatePVPIndices(pvpIndices, teamSet) {
+    teamSet.forEach(teamPairs => {
+        incrementPVPIndexForRound(teamPairs, pvpIndices);
     });
+}
+
+function rearrangeTeams(teamsSet, pvpIndices) {
+    // find possibilities
+    let possibilities = teamsSet.map(teamPairs => calculatePossibleMatchups([...teamPairs]));
+    // set initialPVPs
+    updatePVPIndices(pvpIndices, teamsSet);
+    // traverse round by round
+    let variance = findPVPVariance(pvpIndices)
+    let maxClubbing = Math.max(5 - (possibilities[0].length + '').length, 1)
+    let clubbedTeams = Math.min(possibilities.length, maxClubbing);
+    let permutations = Math.pow(possibilities[0].length, clubbedTeams);
+    
+    for(let i = 0; possibilities.length > i + clubbedTeams; i++) {
+        for(let j = 0; j < permutations; j++) {
+            let indexQuotient = j;
+            let currPossibilities = []
+            for(let k = 0; k < clubbedTeams; k++) {
+                let psbltyIndex = k + i;
+                revertPVPIndexForRound(teamsSet[psbltyIndex], pvpIndices)
+                currPossibilities[k] = possibilities[psbltyIndex][indexQuotient % possibilities[0].length]
+                incrementPVPIndexForRound(currPossibilities[k], pvpIndices)
+                indexQuotient = Math.floor(indexQuotient / possibilities[0].length)
+            }
+            let currVariance = findPVPVariance(pvpIndices)
+            if(currVariance < variance) {
+                variance = currVariance
+                for(let k = 0; k < clubbedTeams; k++) {
+                    let psbltyIndex = k + i;
+                    teamsSet[psbltyIndex] = currPossibilities[k];
+                }
+            } else {
+                for(let k = 0; k < clubbedTeams; k++) {
+                    let psbltyIndex = k + i;
+                    revertPVPIndexForRound(currPossibilities[k], pvpIndices)
+                    incrementPVPIndexForRound(teamsSet[psbltyIndex], pvpIndices)
+                }
+            }
+        }
+    }
+}
+
+function allPVPsAreTwo(pvpIndices) {
+    for(const player in pvpIndices) {
+        for(const otherPlayer in pvpIndices[player]) {
+            if(pvpIndices[player][otherPlayer] !== 2) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 function generateMatches(rounds) {
@@ -80,15 +112,93 @@ function generateMatches(rounds) {
     const numberOfRestPlayers = shuffledPlayers.length % 4;
     const pvpIndices = initializePVPIndices(shuffledPlayers);
     for(let j = 0; j < numberOfRestPlayers; j++) {
-        shuffledPlayers.push(null);
+        let idxForNull = Math.floor((j + 1)/numberOfRestPlayers * shuffledPlayers.length);
+        // insert null to shuffledPlayers at idxForNull
+        shuffledPlayers.splice(idxForNull, 0, null)
     }
-    for(let i = 0; i < rounds; i++) {
-        const match = {};        
+    let idealRounds = players.length + (players.length % 4) - 1;
+
+    const teamsSet = [];
+    const restSet = [];
+    for(let i = 0; i < idealRounds; i++) {
         let [teamPairs, restPlayers] = computeTeamPairs(i, shuffledPlayers);
-        match.restPlayers = restPlayers;
-        match.games = computeGames(teamPairs, pvpIndices);
+        if(teamPairs != null) {
+            teamsSet.push(teamPairs);
+            restSet.push(restPlayers);
+        }
+    }
+
+    rearrangeTeams(teamsSet, pvpIndices);
+
+    for(let i = 0; i < rounds; i++) {
+        const match = {};
+        match.restPlayers = restSet[i % teamsSet.length];
+        match.games = computeGames([...teamsSet[i % teamsSet.length]]);
         matches.push(match);
-        updatePVPIndices(pvpIndices, match.games);
     }
     return matches;
+}
+
+function updatePVPIndexForRound(teamPairs, pvpIndices, change) {
+	let teamPairsCp = [...teamPairs];
+    while(teamPairsCp.length > 0) {
+        const [player1, player2] = teamPairsCp.shift();
+        const [player3, player4] = teamPairsCp.shift();
+        pvpIndices[player1][player3] += change;
+        pvpIndices[player1][player4] += change;
+        pvpIndices[player2][player3] += change;
+        pvpIndices[player2][player4] += change;
+        pvpIndices[player3][player1] += change;
+        pvpIndices[player3][player2] += change;
+        pvpIndices[player4][player1] += change;
+        pvpIndices[player4][player2] += change;
+    }
+}
+
+function revertPVPIndexForRound(teamPairs, pvpIndices) {
+	updatePVPIndexForRound(teamPairs, pvpIndices, -1);
+}
+
+function incrementPVPIndexForRound(teamPairs, pvpIndices) {
+	updatePVPIndexForRound(teamPairs, pvpIndices, 1);
+}
+
+function findMaxPVP(teamPairs, pvpIndices) {
+    let teamPairsCp = [...teamPairs];
+    let maxPVP = 0;
+    while(teamPairsCp.length > 0) {
+        const [player1, player2] = teamPairsCp.shift();
+        const [player3, player4] = teamPairsCp.shift();
+        maxPVP = maxPVP + Math.pow(pvpIndices[player1][player3] - 2, 2) +
+            Math.pow(pvpIndices[player1][player4] - 2, 2) +
+            Math.pow(pvpIndices[player2][player3] - 2, 2) +
+            Math.pow(pvpIndices[player2][player4] - 2, 2);
+    }
+    return maxPVP;
+}
+
+function findPVPVariance(pvpIndices) {
+    return Object.keys(pvpIndices).reduce((variance, player) => {
+        return variance + Object.keys(pvpIndices[player]).reduce((prVariance, player2) => {
+            return prVariance + Math.pow(pvpIndices[player][player2] - 2, 2)
+        }, 0)
+    }, 0)
+}
+
+function calculatePossibleMatchups(teams) {
+	let teamAnchor = teams.shift()
+	let matches = []
+	teams.forEach(team => {
+		let anchorPair = [teamAnchor, team]
+		let teamsSlice = teams.filter(t => t !== team)
+        if(teamsSlice.length > 0) {
+            calculatePossibleMatchups(teamsSlice).forEach(match => {
+			    matches.push([...anchorPair, ...match])
+		    })
+        } else {
+            matches.push(anchorPair)
+        }
+	})
+	teams.unshift(teamAnchor)
+	return matches
 }
