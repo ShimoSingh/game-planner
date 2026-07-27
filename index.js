@@ -46,11 +46,15 @@ document.getElementById('save-button').addEventListener('click', function() {
 
 document.getElementById('clear-button').addEventListener('click', function() {
     if(confirm('Are you sure you want to clear the current matches?')) {
-        matches = [];
-        localStorage.setItem('matches', JSON.stringify(matches));
-        reRenderMatches();
+        clearMatches();
     }
 });
+
+function clearMatches() {
+    matches = [];
+    localStorage.setItem('matches', JSON.stringify(matches));
+    reRenderMatches();
+}
 
 document.getElementById('generate-matches').addEventListener('click', function() {
     const numRounds = parseInt(document.getElementById('num-rounds').value);
@@ -62,10 +66,23 @@ document.getElementById('generate-matches').addEventListener('click', function()
         alert('Please enter a valid number of rounds.');
         return;
     }
-    matches = generateMatches(numRounds);
-    localStorage.setItem('matches', JSON.stringify(matches));
-    reRenderMatches();
+    clearMatches();
+    showMatchSpinner();
+    setTimeout(function() {
+        matches = generateMatches(numRounds);
+        localStorage.setItem('matches', JSON.stringify(matches));
+        hideMatchSpinner();
+        reRenderMatches();
+    }, 100)
 });
+
+function showMatchSpinner() {
+    document.getElementById("matchLoader").classList.remove("d-none")
+}
+
+function hideMatchSpinner() {
+    document.getElementById("matchLoader").classList.add("d-none")
+}
 
 function reRenderMatches() {
     if(matches.length === 0) {
