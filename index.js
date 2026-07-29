@@ -123,20 +123,27 @@ function renderGame(game, gameIndex, listItem) {
     playersCol.className = 'row col-10 col-lg-11';
     gameContent.appendChild(playersCol);
     addTeamCol(game.slice(0, 2), playersCol, 'start');
-    addScoreInput(playersCol);
-    addScoreInput(playersCol, "order-1");
+    addScoreInput(playersCol, 0, game);
+    addScoreInput(playersCol, 1, game);
     addTeamCol(game.slice(2, 4), playersCol, 'end');
     listItem.appendChild(gameContent);
 }
 
-function addScoreInput(playersCol, orderClass) {
+function addScoreInput(playersCol, order, game) {
     const scoreCol = document.createElement('div');
     scoreCol.className = 'col-5 col-md-2 row order-md-0';
-    scoreCol.classList.add(orderClass);
+    scoreCol.classList.add("order-" + order);
     const scoreInput = document.createElement('input');
     scoreInput.type = 'text';
     scoreInput.className = 'col-10 mb-2 mb-md-0 text-center js-score-input';
     scoreInput.placeholder = 'Score';
+    game.score ||= []
+    if(game.score[order]) {
+        scoreInput.value = game.score[order]
+    }
+    scoreInput.onchange = event => {
+        game.score[order] = event.target.value
+    }
     scoreCol.appendChild(scoreInput);
     playersCol.appendChild(scoreCol);
 }
